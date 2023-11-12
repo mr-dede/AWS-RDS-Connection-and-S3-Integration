@@ -12,11 +12,16 @@ This repository contains a Jupyter Notebook script that demonstrates the integra
 # Connection to AWS RDS with the psycopg2 lib
 # ...
 con = psycopg2.connect(
-    host="database-1.cbjgisljmsxh.eu-north-1.rds.amazonaws.com",
-    database="postgres",
-    user="postgres",
-    password="12345678"
+    host = "database-1.cbjgisljmsxh.eu-north-1.rds.amazonaws.com",
+    database = "postgres",
+    user = "postgres",
+    password = "12345678"
+
 )
+con.autocommit = True
+cur = con.cursor()
+cur.execute('create database inventario;')
+con.close()
 # ...
 ```
 
@@ -27,10 +32,15 @@ con = psycopg2.connect(
 # Creation of the files table
 # ...
 con = psycopg2.connect(
-    host="database-1.cbjgisljmsxh.eu-north-1.rds.amazonaws.com",
-    database="inventario",
-    user="postgres",
-    password="12345678"
+    host = "database-1.cbjgisljmsxh.eu-north-1.rds.amazonaws.com",
+    database = "inventario",
+    user = "postgres",
+    password = "12345678"
+)
+con.autocommit = True
+cur = con.cursor()
+cur.execute('create table arquivos (idarquivo INT, nomearquivo VARCHAR(256));')
+con.close()
 )
 # ...
 ```
@@ -39,14 +49,34 @@ con = psycopg2.connect(
 4. Utilizes boto3 to interact with the AWS S3 bucket, retrieves file names with a specific prefix, and saves them to the 'arquivos' table in the 'inventario' database.
 
 ```python
-# Now we can read objects at AWS Bucket and
-# Also get its names and push them to our database "inventario"
-# ...
 s3 = boto3.resource(
-    service_name='s3',
-    region_name='eu-north-1',
-    aws_access_key_id='AKIA3JFRCWMSHYLK7IOH',
-    aws_secret_access_key='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'
+    service_name = 's3',
+    region_name = 'eu-north-1',
+    aws_access_key_id = 'AKIA3JFRCWMSHYLK7IOH',
+    aws_secret_access_key = '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'
+)
+bucket = 'engdadosadenilson'
+prefix = 'imagens/'
+
+con = psycopg2.connect(
+    host = "database-1.cbjgisljmsxh.eu-north-1.rds.amazonaws.com",
+    database = "inventario",
+    user = "postgres",
+    password = "12345678"
+)
+con.autocommit = True
+cur = con.cursor()
+id = 0
+
+for objects_s3 in s3.Bucket(bucket).objects.filter(Prefix = prefix):
+  if objects_s3.key.endswith('jpg') or objects_s3.key.endswith('JPG'):
+    filename = objects_s3.key.split('/')[1]
+    id += 1
+    cur.execute(
+        "insert into arquivos (idarquivo,nomearquivo) values ("+str(id)+",'"+filename+"'"")")
+
+
+con.close()Bxk4Ba0Hci/fFvluZtSA3EayfVxiRiIsP1bqbW'
 )
 # ...
 ```
@@ -55,14 +85,19 @@ s3 = boto3.resource(
 5. Connects to the 'inventario' database and retrieves all entries from the 'arquivos' table to verify that the file names were successfully saved.
 
 ```python
-# Now we can verify if the file names were saved into our database
-# ...
 con = psycopg2.connect(
-    host="database-1.cbjgisljmsxh.eu-north-1.rds.amazonaws.com",
-    database="inventario",
-    user="postgres",
-    password="12345678"
+    host = "database-1.cbjgisljmsxh.eu-north-1.rds.amazonaws.com",
+    database = "inventario",
+    user = "postgres",
+    password = "12345678"
 )
+con.autocommit = True
+cur = con.cursor()
+cur.execute('select * from arquivos')
+recset = cur.fetchall()
+for rec in recset:
+  print(rec)
+con.close()
 # ...
 ```
 
